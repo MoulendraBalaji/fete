@@ -1,0 +1,62 @@
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.2em 0.6em;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.small {
+  font-size: 0.68rem;
+  padding: 0.12em 0.45em;
+}
+
+.neutral {
+  background: var(--paper-2);
+  color: var(--ink-2);
+  border-color: var(--line-strong);
+}
+.green {
+  background: var(--stamp-soft);
+  color: var(--stamp);
+  border-color: color-mix(in srgb, var(--stamp) 40%, transparent);
+}
+.accent {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.gold {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+.info {
+  background: var(--info-soft);
+  color: var(--info);
+  border-color: color-mix(in srgb, var(--info) 40%, transparent);
+}
+
+/* Outline variant: a hollow stamp, like an ink pad running dry. */
+.outline {
+  background: transparent;
+  border-style: dashed;
+  font-weight: 600;
+}

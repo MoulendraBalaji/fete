@@ -1,0 +1,36 @@
+.center {
+  max-width: 40rem;
+  margin: var(--sp-8) auto;
+  padding-inline: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.card {
+  text-align: left;
+}
+
+.title {
+  font-size: var(--step-2);
+}
+
+.body {
+  margin-top: var(--sp-3);
+  color: var(--ink-1);
+  line-height: 1.6;
+}
+
+.body code {
+  font-family: var(--font-mono);
+  background: var(--paper-2);
+  padding: 0.1em 0.35em;
+  border-radius: var(--r-sm);
+}
+
+.actions {
+  margin-top: var(--sp-4);
+}

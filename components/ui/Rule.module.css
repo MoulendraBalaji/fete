@@ -1,0 +1,35 @@
+.rule {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  border: 0;
+  margin: var(--sp-4) 0;
+  width: 100%;
+}
+
+hr.rule {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--line-strong), transparent);
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.ornament {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--gold);
+  transform: rotate(45deg);
+}

@@ -1,0 +1,50 @@
+.shell {
+  max-width: 36rem;
+  margin: var(--sp-8) auto;
+  padding-inline: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+}
+
+.card {
+  width: 100%;
+  text-align: center;
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: var(--step-3);
+  color: var(--gold);
+  letter-spacing: 0.1em;
+}
+
+.title {
+  margin-top: var(--sp-2);
+  font-size: var(--step-2);
+}
+
+.body {
+  margin-top: var(--sp-3);
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.actions {
+  margin-top: var(--sp-4);
+}
+
+.link {
+  display: inline-block;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--paper-0);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover {
+  background: var(--accent-strong);
+}

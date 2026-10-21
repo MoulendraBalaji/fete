@@ -1,0 +1,48 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.seal {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex-shrink: 0;
+}
+
+.wax {
+  fill: var(--accent);
+  stroke: var(--accent-strong);
+  stroke-width: 1.2;
+}
+
+.ridge {
+  fill: color-mix(in srgb, var(--accent-strong) 55%, var(--accent));
+  opacity: 0.75;
+}
+
+.letter {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  font-style: italic;
+  fill: var(--paper-0);
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink-0);
+}
+
+.tagline {
+  font-family: var(--font-hand);
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-top: 0.15rem;
+}

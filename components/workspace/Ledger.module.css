@@ -1,0 +1,161 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.summary {
+  background: var(--paper-2);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.statLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.statValue {
+  font-size: var(--step-2);
+  color: var(--ink-0);
+}
+
+.statValue.stamp {
+  color: var(--stamp);
+}
+
+.statValue.danger {
+  color: var(--danger);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-3);
+}
+
+.title {
+  font-size: var(--step-2);
+}
+
+/* --- Ledger table ---------------------------------------------------- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.table thead th {
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom: 2px solid var(--line-strong);
+  padding: var(--sp-2) var(--sp-2);
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--line);
+}
+
+/* Ledger "ruling": a subtle line under each row, like ruled paper. */
+.table tbody th,
+.table tbody td {
+  padding: var(--sp-2);
+  vertical-align: top;
+}
+
+.category {
+  text-align: left;
+  font-weight: 400;
+}
+
+.catLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 600;
+  color: var(--ink-0);
+}
+
+.catHint {
+  display: block;
+  color: var(--ink-3);
+  font-size: 0.75rem;
+  margin-top: 0.1rem;
+}
+
+.share {
+  color: var(--ink-2);
+}
+
+.amountButton {
+  border: 1px dashed transparent;
+  background: transparent;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  color: var(--ink-0);
+}
+
+.amountButton:hover {
+  border-color: var(--line-strong);
+  background: var(--paper-2);
+}
+
+.amountInput {
+  width: 7rem;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--paper-0);
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.inlineEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.reserve {
+  background: color-mix(in srgb, var(--gold-soft) 60%, transparent);
+}
+
+.table tfoot th,
+.table tfoot td {
+  padding: var(--sp-3) var(--sp-2);
+  border-top: 2px double var(--line-strong);
+  font-weight: 700;
+  color: var(--ink-0);
+}
+
+.footnote {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  line-height: 1.5;
+}

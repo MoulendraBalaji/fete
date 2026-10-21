@@ -1,0 +1,219 @@
+.wizard {
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.title {
+  margin-top: var(--sp-1);
+}
+
+.hint {
+  margin-top: var(--sp-2);
+  color: var(--ink-2);
+  max-width: 46ch;
+}
+
+.percent {
+  font-size: var(--step-1);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* The stepped rail of dots, like numbered ledger tabs. */
+.rail {
+  display: flex;
+  gap: var(--sp-2);
+  list-style: none;
+  margin: var(--sp-5) 0 0;
+  padding: 0;
+}
+
+.railItem {
+  flex: 1;
+}
+
+.railDot {
+  display: grid;
+  place-items: center;
+  height: 1.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--paper-2);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+}
+
+.railActive .railDot {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: var(--paper-0);
+}
+
+.railDone .railDot {
+  background: var(--stamp-soft);
+  border-color: color-mix(in srgb, var(--stamp) 40%, transparent);
+  color: var(--stamp);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.twoUp {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--sp-4);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  color: var(--ink-1);
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--gold);
+}
+
+.input[aria-invalid='true'],
+.textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.choices {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.choice {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.choiceOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.choiceTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--ink-0);
+}
+
+.choiceBlurb {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.priorities {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+}
+
+.legend {
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding-inline: var(--sp-2);
+}
+
+.priorityGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.priority {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+
+.priorityOn {
+  border-color: var(--stamp);
+  background: var(--stamp-soft);
+  font-weight: 600;
+}
+
+.priority input:disabled + span {
+  opacity: 0.5;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.footLeft,
+.footRight {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+@media (max-width: 30rem) {
+  .twoUp {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,64 @@
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  border-bottom: 2px solid var(--line-strong);
+  padding-bottom: 0;
+}
+
+/* File-folder tabs: the selected one joins the sheet below. */
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--line-strong);
+  border-bottom: none;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: -2px;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.tab:hover:not(:disabled) {
+  background: var(--paper-0);
+  color: var(--ink-0);
+}
+
+.tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.selected {
+  background: var(--paper-0);
+  color: var(--ink-0);
+  border-top: 3px solid var(--accent);
+  padding-top: calc(var(--sp-2) - 2px);
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  background: var(--ink-0);
+  color: var(--paper-0);
+  border-radius: var(--r-pill);
+  padding: 0 0.4em;
+  min-width: 1.4em;
+  text-align: center;
+}
+
+.panel {
+  outline: none;
+}

@@ -1,0 +1,241 @@
+.clipboard {
+  padding-top: var(--sp-6);
+}
+
+/* The clipboard clip at the top edge. */
+.clip {
+  position: absolute;
+  top: -0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5rem;
+  height: 1.5rem;
+  background: linear-gradient(to bottom, var(--ink-3), var(--ink-2));
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.head {
+  margin-bottom: var(--sp-4);
+}
+
+.title {
+  font-size: var(--step-2);
+}
+
+.sub {
+  margin-top: var(--sp-1);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+  max-width: 52ch;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.item {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.itemHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.disclosure {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.categoryLabel {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--ink-0);
+}
+
+.chevron {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.itemSummary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding-left: 0;
+}
+
+.vendorName {
+  color: var(--ink-1);
+}
+
+.vendorName:empty::before {
+  content: 'Not chosen yet';
+  color: var(--ink-3);
+}
+
+.quote {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--ink-0);
+}
+
+.quoteOf {
+  color: var(--ink-3);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px dashed var(--line-strong);
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--sp-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.fieldLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  color: var(--ink-1);
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.statusRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.statusButtons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.statusChip {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.statusOn {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.linked {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+/* --- AI tips -------------------------------------------------------- */
+.tips {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--info-soft);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.tipsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.tipsEmpty {
+  margin-top: var(--sp-2);
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.attribution {
+  margin-top: var(--sp-2);
+  font-family: var(--font-hand);
+  font-size: 1.05rem;
+  color: var(--ink-3);
+}
+
+.questionList {
+  margin: var(--sp-2) 0 0;
+  padding-left: 1.1rem;
+  font-size: var(--step--1);
+  color: var(--ink-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.redFlags {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px dashed var(--line);
+}
+
+.redFlagTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+@media (max-width: 34rem) {
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+}

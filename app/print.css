@@ -1,0 +1,81 @@
+/* ============================================================================
+   Print: the plan becomes a stationery document.
+   Hides all chrome, flattens shadows, and keeps the timeline + ledger on
+   paper-friendly columns. Uses `break-inside: avoid` so cards never split
+   mid-row across pages.
+   ========================================================================= */
+
+@page {
+  margin: 16mm 14mm;
+}
+
+@media print {
+  :root {
+    --paper-0: #ffffff;
+    --paper-1: #ffffff;
+    --paper-2: #ffffff;
+    --paper-3: #d8d2c6;
+    --ink-0: #000000;
+    --ink-1: #111111;
+    --ink-2: #333333;
+    --ink-3: #555555;
+    --shadow-card: none;
+    --shadow-lift: none;
+    --line: rgba(0, 0, 0, 0.3);
+    --line-strong: rgba(0, 0, 0, 0.55);
+  }
+
+  body {
+    background: #ffffff;
+    background-image: none;
+    font-size: 10.5pt;
+  }
+
+  /* Anything interactive or navigational has no place on paper. */
+  :global([data-print='hide']),
+  nav,
+  button,
+  form[data-print='hide'] {
+    display: none !important;
+  }
+
+  a[href]::after {
+    content: ' (' attr(href) ')';
+    font-size: 8pt;
+    color: #555;
+  }
+
+  /* Only show external destinations, not internal hash links. */
+  a[href^='#']::after,
+  a[data-print='bare']::after {
+    content: '';
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  :global([data-print='avoid-break']) {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  :global([data-print='page-break']) {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  :global([data-print='columns']) {
+    columns: 2;
+    column-gap: 10mm;
+  }
+
+  /* Flatten sheets into outlined blocks so ink stays legible. */
+  :global([data-print='sheet']) {
+    box-shadow: none !important;
+    border: 1px solid #999 !important;
+    background: #fff !important;
+  }
+}

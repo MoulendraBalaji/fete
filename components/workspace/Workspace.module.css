@@ -1,0 +1,170 @@
+.shell {
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding: var(--sp-5) var(--sp-4) var(--sp-7);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--sp-5);
+}
+
+.brandLink {
+  text-decoration: none;
+  display: inline-flex;
+}
+
+.planMeta {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.planName {
+  font-size: var(--step-2);
+  line-height: 1.1;
+}
+
+.planSub {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.planLocation {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.briefWrap {
+  margin-bottom: var(--sp-5);
+}
+
+.main {
+  min-height: 20rem;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.footLink {
+  font-weight: 600;
+}
+
+.loading,
+.emptyShell {
+  max-width: 40rem;
+  margin: var(--sp-8) auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  align-items: center;
+}
+
+.emptyTitle {
+  font-size: var(--step-3);
+}
+
+.emptyBody {
+  margin-top: var(--sp-2);
+  color: var(--ink-2);
+}
+
+.emptyActions {
+  margin-top: var(--sp-4);
+}
+
+/* --- Budget advice panel -------------------------------------------- */
+.adviceTitle {
+  font-size: var(--step-2);
+}
+
+.adviceNote {
+  margin-top: var(--sp-1);
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  color: var(--ink-3);
+}
+
+.adviceLabel {
+  margin-top: var(--sp-3);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.adviceList {
+  margin: var(--sp-2) 0 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  color: var(--ink-1);
+  font-size: var(--step--1);
+}
+
+.transfers {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.transfer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  flex-wrap: wrap;
+}
+
+.transferRoute {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink-0);
+  text-transform: capitalize;
+}
+
+.transferReason {
+  margin-top: var(--sp-1);
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+@media (max-width: 40rem) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .toolbar {
+    width: 100%;
+  }
+}

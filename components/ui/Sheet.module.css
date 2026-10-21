@@ -1,0 +1,65 @@
+/* A sheet of paper: subtle lift, deckle-ish edge, optional tape + punch holes. */
+.sheet {
+  position: relative;
+  background: var(--paper-0);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-5);
+}
+
+.inset {
+  background: var(--paper-2);
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+.accent {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.stamp {
+  background: var(--stamp-soft);
+  border-color: color-mix(in srgb, var(--stamp) 35%, transparent);
+}
+
+/* A strip of washi tape across the top edge. */
+.pinned::before {
+  content: '';
+  position: absolute;
+  top: -0.6rem;
+  left: 2.2rem;
+  width: 4.5rem;
+  height: 1.2rem;
+  background: color-mix(in srgb, var(--gold) 26%, transparent);
+  border-left: 1px dashed color-mix(in srgb, var(--gold) 45%, transparent);
+  border-right: 1px dashed color-mix(in srgb, var(--gold) 45%, transparent);
+  transform: rotate(-2deg);
+}
+
+/* Two holes down the left margin, as if filed in a ring binder. */
+.holes {
+  position: absolute;
+  left: 0.55rem;
+  top: 1.6rem;
+  bottom: 1.6rem;
+  width: 0.5rem;
+  background:
+    radial-gradient(circle at 50% 0.25rem, var(--paper-2) 0.22rem, transparent 0.23rem) top / 100%
+      50% no-repeat,
+    radial-gradient(circle at 50% calc(100% - 0.25rem), var(--paper-2) 0.22rem, transparent 0.23rem)
+      bottom / 100% 50% no-repeat;
+  border-right: 1px dotted var(--line-strong);
+  pointer-events: none;
+}
+
+@media print {
+  .sheet {
+    padding: 0;
+  }
+  .pinned::before,
+  .holes {
+    display: none;
+  }
+}

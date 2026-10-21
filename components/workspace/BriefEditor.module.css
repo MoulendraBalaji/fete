@@ -1,0 +1,147 @@
+.editor {
+  max-width: 44rem;
+}
+
+.head {
+  margin-bottom: var(--sp-4);
+}
+
+.title {
+  font-size: var(--step-2);
+}
+
+.sub {
+  margin-top: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+  max-width: 54ch;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+.twoUp {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--sp-4);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  color: var(--ink-1);
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--gold);
+}
+
+.input[aria-invalid='true'],
+.textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.legend {
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding-inline: var(--sp-2);
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.choice {
+  position: relative;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+
+.choiceOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.choice:focus-within {
+  box-shadow: var(--focus);
+}
+
+.priorityGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.priority {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-0);
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+
+.priorityOn {
+  border-color: var(--stamp);
+  background: var(--stamp-soft);
+  font-weight: 600;
+}
+
+.priority input:disabled + span {
+  opacity: 0.5;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+@media (max-width: 34rem) {
+  .twoUp {
+    grid-template-columns: 1fr;
+  }
+}

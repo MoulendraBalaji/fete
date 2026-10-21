@@ -1,0 +1,8 @@
+node_modules
+.next
+coverage
+package-lock.json
+
+# No parser is inferable for dotfiles Prettier does not know.
+.env.example
+.env.local

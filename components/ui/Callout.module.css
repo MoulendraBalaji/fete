@@ -1,0 +1,53 @@
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  background: var(--paper-0);
+  font-size: var(--step--1);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 700;
+  color: var(--ink-0);
+  margin-bottom: var(--sp-1);
+}
+
+.text {
+  color: var(--ink-1);
+  line-height: 1.5;
+}
+
+.action {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.info {
+  background: var(--info-soft);
+  border-left-color: var(--info);
+}
+.success {
+  background: var(--stamp-soft);
+  border-left-color: var(--stamp);
+}
+.warn {
+  background: var(--warn-soft);
+  border-left-color: var(--warn);
+}
+.danger {
+  background: var(--danger-soft);
+  border-left-color: var(--danger);
+}
+.note {
+  background: var(--gold-soft);
+  border-left-color: var(--gold);
+}
