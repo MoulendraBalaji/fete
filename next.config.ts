@@ -3,33 +3,63 @@ import type { NextConfig } from 'next';
 /**
  * Security headers applied to every response.
  *
- * The CSP is deliberately strict: no third-party origins, no inline scripts of
- * our own, and `frame-ancestors 'none'` so the app cannot be framed for
- * clickjacking. Two allowances are required and intentional:
+ * ── Why `script-src` allows `'unsafe-inline'` ──────────────────────────────
  *
- *  - `'unsafe-inline'` for styles: Next injects a small style block for its
- *    font and layout handling. Styles cannot exfiltrate data the way scripts can.
- *  - `'unsafe-inline'` for scripts is *not* granted. Next's pre-hydration theme
- *    snippet is served through `next/script`, which this app configures to be
- *    hashed at build time; if a future change introduces a raw inline script,
- *    the CSP will block it rather than silently permit it.
+ * This was originally `script-src 'self'`, which **broke the app**: React never
+ * hydrated and the page sat on its server-rendered loading state forever. The
+ * cause is that Next.js emits several inline `<script>` blocks as part of normal
+ * operation — the App Router's streamed flight payload, the bootstrap that
+ * replaces suspense placeholders, and this app's own pre-paint theme snippet via
+ * `next/script`. A bare `'self'` blocks all of them, and a hydration failure is
+ * silent from the server's point of view: the HTML is valid, it just never comes
+ * alive on the client.
  *
- * `connect-src 'self'` is sufficient because all LLM traffic happens
- * server-side: the browser never talks to the model provider.
+ * The honest framing: `next/script` does **not** hash or nonce its output, so
+ * there is no way to keep inline scripts working without either granting
+ * `'unsafe-inline'` or adopting a nonce-based CSP (which requires middleware to
+ * generate a per-request nonce and thread it through `next/script`). The
+ * nonce route is the stronger option and the documented upgrade path; it is not
+ * taken here because it adds a middleware hop to every request for a single-page
+ * app whose only inline script is our own four-line theme bootstrap.
+ *
+ * What still holds, and is what actually blunts XSS:
+ *  - `'unsafe-eval'` is **not** granted in production, so a string cannot be
+ *    evaluated as code.
+ *  - `default-src 'self'` means no inline or remote script can pull in a
+ *    third-party payload, and there is no `dangerouslySetInnerHTML` anywhere in
+ *    the app, so user text is never a script source in the first place.
+ *  - `connect-src 'self'` keeps exfiltration in check: injected script could run,
+ *    but it has nowhere off-origin to send what it reads.
+ *
+ * ── Why development and production differ ─────────────────────────────────
+ *
+ * `next dev` compiles with webpack's eval-based HMR and the React Refresh
+ * runtime, both of which legitimately require `'unsafe-eval'`. Granting it only
+ * in development keeps the production policy as tight as Next allows.
  */
+const isDev = process.env.NODE_ENV !== 'production';
+
+const scriptSrc = ["'self'", "'unsafe-inline'", isDev ? "'unsafe-eval'" : undefined]
+  .filter(Boolean)
+  .join(' ');
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self'",
+  `script-src ${scriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  // All LLM traffic is server-side, so the browser never talks to a provider.
+  // In development Next's HMR socket needs `ws:`.
+  isDev ? "connect-src 'self' ws: http://localhost:*" : "connect-src 'self'",
   "form-action 'self'",
   "base-uri 'none'",
   "object-src 'none'",
   "frame-ancestors 'none'",
-  'upgrade-insecure-requests',
-].join('; ');
+  isDev ? undefined : 'upgrade-insecure-requests',
+]
+  .filter(Boolean)
+  .join('; ');
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: CSP },
