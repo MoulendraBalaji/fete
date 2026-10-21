@@ -366,6 +366,12 @@ same pass.
 `npm run verify` runs lint, typecheck, tests and a production build in sequence — the definition of
 done for any change.
 
+> **Do not run `npm run verify` while `npm run dev` is running.** Both write to `.next`, and the build
+> overwrites the dev server's manifests from under it. The symptom is misleading: the server starts
+> returning `500` with `Could not find the module ... in the React Client Manifest` and
+> `__webpack_modules__[moduleId] is not a function`, which reads like a bundler or source bug. It is
+> not. Stop the dev server (or let the build finish first), delete `.next`, and restart.
+
 ### A note on `npm audit`
 
 `npm audit` currently reports 10 advisories (2 moderate, 6 high, 2 critical). Every one of them is in
