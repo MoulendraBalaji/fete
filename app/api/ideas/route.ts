@@ -23,7 +23,7 @@ export const maxDuration = 30;
 
 export const POST = withErrorHandling(async (request, requestId) => {
   assertSameOrigin(request);
-  const remaining = limitRequest(request, 'ideas');
+  const remaining = await limitRequest(request, 'ideas');
   const { data } = await readValidatedBody(request, ideasRequestSchema, requestId);
 
   const result = await generateIdeas(providerOrUndefined(), data.brief, [], 6);

@@ -16,6 +16,7 @@ import { Money } from '@/components/ui/Money';
 import { Progress } from '@/components/ui/Progress';
 import { Field } from '@/components/ui/Field';
 import { Tabs } from '@/components/ui/Tabs';
+import { Timeline } from '@/components/workspace/Timeline';
 import { createPlan } from '@/lib/domain/plan';
 import { computeLedger } from '@/lib/domain/budget';
 import { WEDDING_BRIEF, TODAY_ISO } from '@/tests/fixtures';
@@ -167,6 +168,111 @@ describe('Tabs', () => {
     expect(screen.getByText('Ledger panel')).toBeDefined();
     const inactive = screen.getByText('Timeline panel').closest('[role="tabpanel"]');
     expect(inactive?.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('puts only the visible panel in the tab order', () => {
+    render(<Tabs items={items} activeId="a" onChange={() => {}} label="Plan sections" />);
+    const panels = screen.getAllByRole('tabpanel', { hidden: true });
+    const active = panels.find((panel) => !panel.hasAttribute('hidden'));
+    expect(active?.getAttribute('tabindex')).toBe('0');
+    for (const panel of panels.filter((entry) => entry.hasAttribute('hidden'))) {
+      expect(panel.getAttribute('tabindex')).toBe('-1');
+    }
+  });
+
+  it('renders no panel at all for a tab that was never opened', () => {
+    // `Workspace` passes `panel: null` for tabs the user has not visited; an
+    // empty `tabpanel` here would be an unreachable landmark for a screen reader.
+    const lazy = [
+      { id: 'a', label: 'Ledger', panel: <p>Ledger panel</p> },
+      { id: 'b', label: 'Timeline', panel: null },
+    ];
+    render(<Tabs items={lazy} activeId="a" onChange={() => {}} label="Plan sections" />);
+    expect(screen.getAllByRole('tabpanel', { hidden: true })).toHaveLength(1);
+    // The *tab* still exists, so keyboard users can reach it to load the panel.
+    expect(screen.getByRole('tab', { name: 'Timeline' })).toBeDefined();
+  });
+});
+
+/* ------------------------------ Timeline -------------------------------- */
+
+describe('Timeline reordering', () => {
+  const base = createPlan(WEDDING_BRIEF, { todayIso: TODAY_ISO, id: 'plan-timeline-01' });
+
+  /** A plan with two milestones sharing a due date, so a move is meaningful. */
+  const orderedPlan = {
+    ...base,
+    timeline: {
+      items: [
+        {
+          id: 'move-aaa111',
+          phase: 'milestone' as const,
+          title: 'Book the venue',
+          detail: '',
+          dueDate: '2026-11-01',
+          done: false,
+          order: 0,
+          compressed: false,
+        },
+        {
+          id: 'move-bbb222',
+          phase: 'milestone' as const,
+          title: 'Choose the caterer',
+          detail: '',
+          dueDate: '2026-11-01',
+          done: false,
+          order: 1,
+          compressed: false,
+        },
+      ],
+    },
+  };
+
+  function renderTimeline(onMove: (id: string, direction: 'up' | 'down') => void) {
+    return render(
+      <Timeline
+        plan={orderedPlan}
+        todayIso={TODAY_ISO}
+        onToggleDone={() => {}}
+        onMove={onMove}
+        onExportIcs={() => {}}
+      />,
+    );
+  }
+
+  it('offers labelled move controls, not drag-only handles', () => {
+    renderTimeline(() => {});
+    expect(screen.getByRole('button', { name: 'Move “Choose the caterer” earlier' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Move “Choose the caterer” later' })).toBeDefined();
+  });
+
+  it('reports a move with the direction and the item id', async () => {
+    const onMove = vi.fn();
+    renderTimeline(onMove);
+    await userEvent.click(screen.getByRole('button', { name: 'Move “Choose the caterer” earlier' }));
+    expect(onMove).toHaveBeenCalledWith('move-bbb222', 'up');
+  });
+
+  it('disables moving the first item earlier and the last item later', () => {
+    renderTimeline(() => {});
+    const up = screen.getByRole('button', {
+      name: 'Move “Book the venue” earlier',
+    }) as HTMLButtonElement;
+    const down = screen.getByRole('button', {
+      name: 'Move “Choose the caterer” later',
+    }) as HTMLButtonElement;
+    // A control that cannot do anything must not offer to do it.
+    expect(up.disabled).toBe(true);
+    expect(down.disabled).toBe(true);
+  });
+
+  it('is operable from the keyboard alone', async () => {
+    const onMove = vi.fn();
+    renderTimeline(onMove);
+    const button = screen.getByRole('button', { name: 'Move “Choose the caterer” earlier' });
+    button.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onMove).toHaveBeenCalledWith('move-bbb222', 'up');
   });
 });
 

@@ -41,6 +41,38 @@
   font-size: var(--step-1);
 }
 
+/**
+ * WCAG 2.5.8 asks for a 44×44 CSS-pixel target. The small button is ~29px tall
+ * by design, and growing it would change the layout the design system specifies,
+ * so instead the *hit area* is enlarged on touch devices with a transparent
+ * pseudo-element. Pointer coordinates outside the button but inside this box
+ * still activate it; nothing about the painted button moves.
+ *
+ * Restricted to coarse pointers: a mouse user gets no invisible dead zones
+ * between adjacent controls.
+ */
+@media (pointer: coarse) {
+  .button {
+    position: relative;
+  }
+
+  .button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    min-height: 44px;
+    min-width: 44px;
+    /* The pseudo-element must not swallow clicks meant for the button's own
+       paint; it only exists to extend the element's box for hit testing. */
+    margin: auto;
+    height: 100%;
+    width: 100%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Sealing-wax primary. */
 .primary {
   background: var(--accent);

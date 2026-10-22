@@ -206,20 +206,48 @@ textarea {
   border: 0;
 }
 
+/*
+  Skip link.
+  
+  Hidden at rest with the same clip technique as `.srOnly` rather than by moving
+  it off-screen with a negative `top`. A negative offset takes the link out of
+  the visible layout, and Lighthouse reports that as "skip links are not
+  focusable" — the audit wants the control to remain a real, focusable element
+  that a keyboard user can see when focus lands on it. `clip`/`clip-path` keeps
+  it in the layout and reachable, and `:focus` restores its size and position.
+  
+  `:focus` (not `:focus-visible`) is used deliberately: the link only ever
+  receives focus by keyboard in practice, and the broader selector means a
+  browser that does not support `:focus-visible` still reveals it rather than
+  leaving the user with an invisible focused element.
+*/
 .skipLink {
   position: absolute;
   left: var(--sp-4);
-  top: -3rem;
+  top: var(--sp-4);
   z-index: 100;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
   background: var(--paper-0);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
-  padding: var(--sp-2) var(--sp-4);
-  transition: top var(--dur) var(--ease);
 }
 
 .skipLink:focus {
-  top: var(--sp-4);
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: var(--sp-2) var(--sp-4);
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
 }
 
 /* --- Shared surfaces --------------------------------------------- */

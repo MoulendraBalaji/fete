@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  compareTimelineItems,
   daysBetween,
   formatMinutesOfDay,
   generateDayOf,
   generateMilestones,
   generateTimeline,
   isOverdue,
+  moveTimelineItem,
   toIsoDate,
 } from '@/lib/domain/timeline';
+import type { TimelineItem } from '@/lib/schemas/plan';
 import { TODAY_ISO, WEDDING_BRIEF } from '@/tests/fixtures';
 
 describe('date helpers', () => {
@@ -88,5 +91,118 @@ describe('generateTimeline', () => {
     expect(items.filter((item) => item.phase === 'milestone').length).toBeGreaterThan(10);
     expect(items.filter((item) => item.phase === 'dayof').length).toBeGreaterThan(5);
     expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
+  });
+});
+
+describe('moveTimelineItem', () => {
+  /** Minimal valid timeline item, so the tests state only what matters. */
+  const item = (
+    id: string,
+    overrides: Partial<TimelineItem> = {},
+  ): TimelineItem => ({
+    id,
+    phase: 'milestone',
+    title: `Task ${id}`,
+    detail: '',
+    dueDate: '2026-11-01',
+    done: false,
+    order: 0,
+    compressed: false,
+    ...overrides,
+  });
+
+  /** The order the Timeline would render these items in. */
+  const visible = (items: readonly TimelineItem[]) =>
+    [...items].sort(compareTimelineItems).map((entry) => entry.id);
+
+  it('swaps two items that share a due date', () => {
+    const items = [item('aaa111', { order: 0 }), item('bbb222', { order: 1 })];
+    const moved = moveTimelineItem(items, 'bbb222', 'up');
+    expect(visible(moved)).toEqual(['bbb222', 'aaa111']);
+  });
+
+  it('moves an item later, not just earlier', () => {
+    const items = [item('aaa111', { order: 0 }), item('bbb222', { order: 1 })];
+    const moved = moveTimelineItem(items, 'aaa111', 'down');
+    expect(visible(moved)).toEqual(['bbb222', 'aaa111']);
+  });
+
+  it('actually reorders across different due dates', () => {
+    // A plain `order` swap would be invisible here: the sort reads the date
+    // first, so the item would snap straight back. This is the case that makes
+    // the naive implementation look broken.
+    const items = [
+      item('aaa111', { dueDate: '2026-11-01', order: 0 }),
+      item('bbb222', { dueDate: '2026-12-01', order: 1 }),
+    ];
+    const moved = moveTimelineItem(items, 'bbb222', 'up');
+    expect(visible(moved)).toEqual(['bbb222', 'aaa111']);
+    // And the reverse move restores the original order.
+    expect(visible(moveTimelineItem(moved, 'bbb222', 'down'))).toEqual(['aaa111', 'bbb222']);
+  });
+
+  it('moves within the run sheet by clock time', () => {
+    const items = [
+      item('aaa111', { phase: 'dayof', dueDate: undefined, startMin: 540, order: 0 }),
+      item('bbb222', { phase: 'dayof', dueDate: undefined, startMin: 600, order: 1 }),
+    ];
+    expect(visible(moveTimelineItem(items, 'bbb222', 'up'))).toEqual(['bbb222', 'aaa111']);
+  });
+
+  it('is a no-op at the ends of the list', () => {
+    const items = [item('aaa111', { order: 0 }), item('bbb222', { order: 1 })];
+    expect(visible(moveTimelineItem(items, 'aaa111', 'up'))).toEqual(['aaa111', 'bbb222']);
+    expect(visible(moveTimelineItem(items, 'bbb222', 'down'))).toEqual(['aaa111', 'bbb222']);
+  });
+
+  it('ignores an unknown id rather than corrupting the list', () => {
+    const items = [item('aaa111', { order: 0 }), item('bbb222', { order: 1 })];
+    const moved = moveTimelineItem(items, 'not-here', 'up');
+    expect(visible(moved)).toEqual(['aaa111', 'bbb222']);
+  });
+
+  it('leaves items outside the swapped pair untouched', () => {
+    const items = [
+      item('aaa111', { dueDate: '2026-11-01', order: 0 }),
+      item('bbb222', { dueDate: '2026-12-01', order: 1 }),
+      item('ccc333', { dueDate: '2027-01-01', order: 2 }),
+    ];
+    const moved = moveTimelineItem(items, 'ccc333', 'up');
+    // The third item stays exactly as it was; the two that traded places did so
+    // deliberately (they swapped dates), which is the point of the operation.
+    expect(moved.find((entry) => entry.id === 'aaa111')).toEqual(items[0]);
+    expect(moved).toHaveLength(3);
+  });
+
+  it('swaps the date, because a date outranks `order` in the sort', () => {
+    const items = [
+      item('aaa111', { dueDate: '2026-11-01', order: 0 }),
+      item('bbb222', { dueDate: '2026-12-01', order: 1 }),
+    ];
+    const moved = moveTimelineItem(items, 'bbb222', 'up');
+    const first = moved.find((entry) => entry.id === 'bbb222');
+    const second = moved.find((entry) => entry.id === 'aaa111');
+    expect(first?.dueDate).toBe('2026-11-01');
+    expect(second?.dueDate).toBe('2026-12-01');
+  });
+
+  it('swaps the clock times of two run-sheet slots', () => {
+    const items = [
+      item('aaa111', { phase: 'dayof', dueDate: undefined, startMin: 540, endMin: 600, order: 0 }),
+      item('bbb222', { phase: 'dayof', dueDate: undefined, startMin: 600, endMin: 660, order: 1 }),
+    ];
+    const moved = moveTimelineItem(items, 'bbb222', 'up');
+    expect(moved.find((entry) => entry.id === 'bbb222')?.startMin).toBe(540);
+    expect(moved.find((entry) => entry.id === 'aaa111')?.startMin).toBe(600);
+  });
+
+  it('will not move an item across the countdown / run-sheet boundary', () => {
+    const items = [
+      item('aaa111', { phase: 'milestone', dueDate: '2026-11-01', order: 0 }),
+      item('bbb222', { phase: 'dayof', dueDate: undefined, startMin: 540, order: 1 }),
+    ];
+    // The two sections are rendered as separate lists, so a move between them
+    // would have no visible meaning and must be refused.
+    expect(visible(moveTimelineItem(items, 'bbb222', 'up'))).toEqual(['aaa111', 'bbb222']);
   });
 });

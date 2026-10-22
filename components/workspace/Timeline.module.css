@@ -137,6 +137,32 @@
   border-left: 1px dashed var(--line-strong);
 }
 
+/* Reordering controls. Two real buttons, so they are keyboard-reachable and
+   operable without a pointer; see `ReorderButtons` for why not drag-and-drop. */
+.reorder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-1);
+  margin-left: auto;
+  flex: none;
+}
+
+.reorderButton {
+  /* 44px min target on the smaller edge, per WCAG 2.5.8, regardless of the
+     visual size of the glyph inside. */
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
+  line-height: 1;
+  font-size: 1rem;
+}
+
+.slot .reorder {
+  flex-direction: row;
+  margin-left: var(--sp-2);
+}
+
 .stub::after {
   content: '';
   position: absolute;

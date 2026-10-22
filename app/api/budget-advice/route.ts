@@ -23,7 +23,7 @@ export const maxDuration = 30;
 
 export const POST = withErrorHandling(async (request, requestId) => {
   assertSameOrigin(request);
-  const remaining = limitRequest(request, 'budget-advice');
+  const remaining = await limitRequest(request, 'budget-advice');
   const { data } = await readValidatedBody(request, budgetAdviceRequestSchema, requestId);
 
   const result = await generateBudgetAdvice(providerOrUndefined(), data.brief, data.rows);

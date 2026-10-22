@@ -7,6 +7,7 @@ import type { Idea, Plan } from '@/lib/schemas/plan';
 import { applyTransfer, computeLedger } from '@/lib/domain/budget';
 import { buildIcs } from '@/lib/domain/ics';
 import { rebuildPlan } from '@/lib/domain/plan';
+import { moveTimelineItem } from '@/lib/domain/timeline';
 import { newId } from '@/lib/domain/id';
 import { buildSharePath } from '@/lib/share/encode';
 import {
@@ -72,6 +73,18 @@ export interface WorkspaceProps {
 export function Workspace({ sharedPlan }: WorkspaceProps) {
   const library = usePlanLibrary(sharedPlan);
   const [tab, setTab] = useState<WorkspaceTab>('ledger');
+  /**
+   * Which panels have ever been shown.
+   *
+   * `Tabs` keeps a panel mounted once it exists so a half-typed budget row or a
+   * scroll position survives a glance at another section. Building all five
+   * panels up front would honour that at the cost of rendering four sections the
+   * user may never open, so each panel is created on first visit and kept from
+   * then on.
+   */
+  const [visited, setVisited] = useState<ReadonlySet<WorkspaceTab>>(
+    () => new Set<WorkspaceTab>(['ledger']),
+  );
   const [briefOpen, setBriefOpen] = useState(false);
   const [localNotice, setLocalNotice] = useState<LibraryNotice | null>(null);
 
@@ -86,6 +99,12 @@ export function Workspace({ sharedPlan }: WorkspaceProps) {
   const today = useMemo(() => localTodayIso(), []);
 
   const notify = useCallback((notice: LibraryNotice) => setLocalNotice(notice), []);
+
+  /** Switches tab and marks it visited, so its panel is built from now on. */
+  const showTab = useCallback((id: WorkspaceTab) => {
+    setTab(id);
+    setVisited((current) => (current.has(id) ? current : new Set([...current, id])));
+  }, []);
 
   const { activePlan, updateActive } = library;
   const notice = localNotice ?? library.notice;
@@ -288,19 +307,32 @@ export function Workspace({ sharedPlan }: WorkspaceProps) {
     );
   }, [activePlan, notify, reportFailure, updateActive]);
 
+  // Derived from the whole budget, so it is recomputed only when the brief or
+  // the rows actually change — not on every keystroke elsewhere in the plan.
+  // Declared above the early returns because hooks must run on every render.
+  const brief = activePlan?.brief;
+  const budgetRows = activePlan?.budget.rows;
+  const ledger = useMemo(
+    () => (brief && budgetRows ? computeLedger(brief, budgetRows) : null),
+    [brief, budgetRows],
+  );
+
   /* -------------------------------------------------------------- render */
 
   if (!library.ready) {
     return (
-      <div className={styles.loading} aria-live="polite">
+      <main id="main" className={styles.loading} aria-live="polite">
         <p>Opening your plans…</p>
-      </div>
+      </main>
     );
   }
 
   if (!activePlan) {
+    // The only branch of this component that owns the page's `main` landmark, so
+    // it must provide it: the root layout's skip link targets `#main`, and a
+    // skip link that leads nowhere is an accessibility failure, not a nicety.
     return (
-      <div className={styles.emptyShell}>
+      <main id="main" className={styles.emptyShell}>
         <Logo />
         <Sheet>
           <h1 className={styles.emptyTitle}>Nothing here yet</h1>
@@ -313,19 +345,18 @@ export function Workspace({ sharedPlan }: WorkspaceProps) {
             </Button>
           </div>
         </Sheet>
-      </div>
+      </main>
     );
   }
 
-  const ledger = computeLedger(activePlan.brief, activePlan.budget.rows);
   const fromIdeas = activePlan.timeline.items.filter((item) => item.id.startsWith('idea-')).length;
 
   const tabs: TabItem[] = [
     {
       id: 'ledger',
       label: 'Ledger',
-      badge: String(ledger.rows.length),
-      panel: (
+      badge: String(ledger?.rows.length ?? 0),
+      panel: visited.has('ledger') ? (
         <Ledger
           brief={activePlan.brief}
           rows={activePlan.budget.rows}
@@ -334,18 +365,24 @@ export function Workspace({ sharedPlan }: WorkspaceProps) {
           adviceBusy={adviceBusy}
           advice={advice}
         />
-      ),
+      ) : null,
     },
     {
       id: 'timeline',
       label: 'Timeline',
       badge: String(activePlan.timeline.items.filter((item) => !item.done).length),
-      panel: (
+      panel: visited.has('timeline') ? (
         <Timeline
           plan={activePlan}
           todayIso={today}
           onExportIcs={handleIcs}
           icsUrl={icsUrl}
+          onMove={(id, direction) =>
+            updateActive((plan) => ({
+              ...plan,
+              timeline: { items: moveTimelineItem(plan.timeline.items, id, direction) },
+            }))
+          }
           onToggleDone={(id) =>
             updateActive((plan) => ({
               ...plan,
@@ -357,26 +394,26 @@ export function Workspace({ sharedPlan }: WorkspaceProps) {
             }))
           }
         />
-      ),
+      ) : null,
     },
     {
       id: 'roster',
       label: 'Roster',
       badge: String(activePlan.vendors.filter((vendor) => vendor.status === 'todo').length || ''),
-      panel: (
+      panel: visited.has('roster') ? (
         <Roster
           plan={activePlan}
           tipsBusyKey={tipsBusyKey}
           onRequestTips={(key) => void requestTips(key)}
           onChange={(vendors) => updateActive((plan) => ({ ...plan, vendors }))}
         />
-      ),
+      ) : null,
     },
     {
       id: 'muse',
       label: 'Muse',
       badge: String(activePlan.ideas.filter((idea) => !idea.dismissed).length || ''),
-      panel: (
+      panel: visited.has('muse') ? (
         <Muse
           ideas={activePlan.ideas}
           busy={ideasBusy}
@@ -427,16 +464,16 @@ export function Workspace({ sharedPlan }: WorkspaceProps) {
               ...plan,
               timeline: { items: [...plan.timeline.items, item] },
             }));
-            setTab('timeline');
+            showTab('timeline');
             notify({ message: 'Added to the timeline as a task due today.', tone: 'success' });
           }}
         />
-      ),
+      ) : null,
     },
     {
       id: 'chat',
       label: 'Ask',
-      panel: <ChatPanel plan={activePlan} todayIso={today} />,
+      panel: visited.has('chat') ? <ChatPanel plan={activePlan} todayIso={today} /> : null,
     },
   ];
 
@@ -496,7 +533,7 @@ export function Workspace({ sharedPlan }: WorkspaceProps) {
         <Tabs
           items={tabs}
           activeId={tab}
-          onChange={(id) => setTab(id as WorkspaceTab)}
+          onChange={(id) => showTab(id as WorkspaceTab)}
           label="Plan sections"
         />
       </main>

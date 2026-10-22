@@ -2,7 +2,13 @@
 
 import { useMemo } from 'react';
 import type { Plan, TimelineItem } from '@/lib/schemas/plan';
-import { daysBetween, formatMinutesOfDay, isOverdue } from '@/lib/domain/timeline';
+import {
+  compareTimelineItems,
+  daysBetween,
+  formatMinutesOfDay,
+  isOverdue,
+  type MoveDirection,
+} from '@/lib/domain/timeline';
 import { formatPlanDate } from '@/lib/domain/plan';
 import { Button, LinkButton } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
@@ -15,6 +21,8 @@ export interface TimelineProps {
   plan: Plan;
   todayIso: string;
   onToggleDone: (id: string) => void;
+  /** Moves an item one position earlier or later in the visible list. */
+  onMove: (id: string, direction: MoveDirection) => void;
   onExportIcs: () => void;
   /** Whether the .ics data URL is ready (built lazily on the client). */
   icsUrl?: string;
@@ -30,20 +38,21 @@ export interface TimelineProps {
  * Milestones whose natural lead time fell before today arrive flagged as
  * "compressed", so the user understands why several tasks share one due date.
  */
-export function Timeline({ plan, todayIso, onToggleDone, onExportIcs, icsUrl }: TimelineProps) {
+export function Timeline({
+  plan,
+  todayIso,
+  onToggleDone,
+  onMove,
+  onExportIcs,
+  icsUrl,
+}: TimelineProps) {
   const days = daysBetween(todayIso, plan.brief.date);
   const milestones = useMemo(
-    () =>
-      plan.timeline.items
-        .filter((item) => item.phase === 'milestone')
-        .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? '') || a.order - b.order),
+    () => plan.timeline.items.filter((item) => item.phase === 'milestone').sort(compareTimelineItems),
     [plan.timeline.items],
   );
   const dayOf = useMemo(
-    () =>
-      plan.timeline.items
-        .filter((item) => item.phase === 'dayof')
-        .sort((a, b) => (a.startMin ?? 0) - (b.startMin ?? 0) || a.order - b.order),
+    () => plan.timeline.items.filter((item) => item.phase === 'dayof').sort(compareTimelineItems),
     [plan.timeline.items],
   );
 
@@ -115,12 +124,15 @@ export function Timeline({ plan, todayIso, onToggleDone, onExportIcs, icsUrl }: 
           </EmptyState>
         ) : (
           <ol className={styles.tickets}>
-            {milestones.map((item) => (
+            {milestones.map((item, index) => (
               <MilestoneTicket
                 key={item.id}
                 item={item}
                 todayIso={todayIso}
                 onToggle={onToggleDone}
+                onMove={onMove}
+                isFirst={index === 0}
+                isLast={index === milestones.length - 1}
               />
             ))}
           </ol>
@@ -142,7 +154,7 @@ export function Timeline({ plan, todayIso, onToggleDone, onExportIcs, icsUrl }: 
           <EmptyState title="No run sheet yet" />
         ) : (
           <ol className={styles.programme} data-print="columns">
-            {dayOf.map((item) => (
+            {dayOf.map((item, index) => (
               <li key={item.id} className={styles.slot}>
                 <span className={`mono ${styles.slotTime}`}>
                   {item.startMin !== undefined ? formatMinutesOfDay(item.startMin) : '—'}
@@ -151,6 +163,12 @@ export function Timeline({ plan, todayIso, onToggleDone, onExportIcs, icsUrl }: 
                   <p className={styles.slotTitle}>{item.title}</p>
                   {item.detail ? <p className={styles.slotDetail}>{item.detail}</p> : null}
                 </div>
+                <ReorderButtons
+                  title={item.title}
+                  onMove={(direction) => onMove(item.id, direction)}
+                  isFirst={index === 0}
+                  isLast={index === dayOf.length - 1}
+                />
               </li>
             ))}
           </ol>
@@ -169,10 +187,16 @@ function MilestoneTicket({
   item,
   todayIso,
   onToggle,
+  onMove,
+  isFirst,
+  isLast,
 }: {
   item: TimelineItem;
   todayIso: string;
   onToggle: (id: string) => void;
+  onMove: (id: string, direction: MoveDirection) => void;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const late = !item.done && isOverdue(item.dueDate, todayIso);
   const days = item.dueDate ? daysBetween(todayIso, item.dueDate) : undefined;
@@ -226,8 +250,64 @@ function MilestoneTicket({
         </div>
       </div>
 
+      <ReorderButtons
+        title={item.title}
+        onMove={(direction) => onMove(item.id, direction)}
+        isFirst={isFirst}
+        isLast={isLast}
+      />
+
       {/* The ticket stub: ruled edge like a torn docket. */}
       <span className={styles.stub} aria-hidden="true" />
     </li>
+  );
+}
+
+/**
+ * Keyboard-first reordering.
+ *
+ * Two ordinary buttons rather than drag-and-drop: they are reachable by tab,
+ * operable by Enter/Space, announced with the item's own title so a screen
+ * reader says *which* task is moving, and they need no pointer at all. Drag
+ * would have to reimplement all of that, and would be unusable on a phone held
+ * one-handed.
+ *
+ * The buttons are disabled at the ends of the list, so the control never offers
+ * a move that would do nothing.
+ */
+function ReorderButtons({
+  title,
+  onMove,
+  isFirst,
+  isLast,
+}: {
+  title: string;
+  onMove: (direction: MoveDirection) => void;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  return (
+    <div className={styles.reorder} data-print="hide">
+      <Button
+        size="sm"
+        variant="ghost"
+        className={styles.reorderButton}
+        disabled={isFirst}
+        aria-label={`Move “${title}” earlier`}
+        onClick={() => onMove('up')}
+      >
+        ↑
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className={styles.reorderButton}
+        disabled={isLast}
+        aria-label={`Move “${title}” later`}
+        onClick={() => onMove('down')}
+      >
+        ↓
+      </Button>
+    </div>
   );
 }

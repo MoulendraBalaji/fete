@@ -655,3 +655,71 @@ export function isOverdue(dueDate: string | undefined, todayIso: string): boolea
   if (!dueDate) return false;
   return daysBetween(todayIso, dueDate) < 0;
 }
+
+/**
+ * The order the Timeline renders an item list in.
+ *
+ * Exported so reordering can be defined against the *same* sequence the user
+ * sees: a move that swapped against a different ordering would appear to do
+ * nothing. Milestones sort by due date, the run sheet by clock time, and `order`
+ * breaks ties in both.
+ */
+export function compareTimelineItems(a: TimelineItem, b: TimelineItem): number {
+  if (a.phase !== b.phase) return a.phase === 'milestone' ? -1 : 1;
+  if (a.phase === 'dayof') {
+    return (a.startMin ?? 0) - (b.startMin ?? 0) || a.order - b.order;
+  }
+  return (
+    (a.dueDate ?? '').localeCompare(b.dueDate ?? '') ||
+    a.order - b.order ||
+    a.title.localeCompare(b.title)
+  );
+}
+
+export type MoveDirection = 'up' | 'down';
+
+/**
+ * Moves one item one position earlier or later in the visible run sheet.
+ *
+ * The sort reads the date or clock time *before* `order`, so a move has to swap
+ * the field the sort actually reads — swapping `order` alone would be silently
+ * reverted, and a fractional `order` cannot outrank a date at all. That is why
+ * this trades the sort key: two milestones swap due dates, and two run-sheet
+ * slots swap their start and end times. `order` is swapped alongside only to
+ * keep the tie-break stable between two items that share a key.
+ *
+ * Returns the list unchanged when the move is impossible (already at an end, or
+ * the id is unknown), so the caller can apply the result unconditionally.
+ */
+export function moveTimelineItem(
+  items: readonly TimelineItem[],
+  id: string,
+  direction: MoveDirection,
+): TimelineItem[] {
+  const ordered = [...items].sort(compareTimelineItems);
+  const index = ordered.findIndex((item) => item.id === id);
+  if (index === -1) return [...items];
+
+  const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= ordered.length) return [...items];
+
+  const moved = ordered[index]!;
+  const neighbour = ordered[targetIndex]!;
+  // Reordering only makes sense between items in the same section — the
+  // countdown and the run sheet are separate lists that happen to share a model.
+  if (moved.phase !== neighbour.phase) return [...items];
+
+  return items.map((item) => {
+    if (item.id === moved.id) {
+      return moved.phase === 'dayof'
+        ? { ...item, startMin: neighbour.startMin, endMin: neighbour.endMin, order: neighbour.order }
+        : { ...item, dueDate: neighbour.dueDate, order: neighbour.order };
+    }
+    if (item.id === neighbour.id) {
+      return neighbour.phase === 'dayof'
+        ? { ...item, startMin: moved.startMin, endMin: moved.endMin, order: moved.order }
+        : { ...item, dueDate: moved.dueDate, order: moved.order };
+    }
+    return item;
+  });
+}

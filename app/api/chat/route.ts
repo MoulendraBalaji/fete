@@ -29,8 +29,11 @@ const STANDARD_MARKER = `${STREAM_DELIMITER}standard${STREAM_DELIMITER}`;
 
 export const POST = withErrorHandling(async (request, requestId) => {
   assertSameOrigin(request);
-  limitRequest(request, 'chat');
+  await limitRequest(request, 'chat');
   const { data } = await readValidatedBody(request, chatRequestSchema, requestId);
+  // `providerOrUndefined` also applies the daily upstream ceiling; when the
+  // budget is spent it returns undefined and the stream degrades to the
+  // deterministic answer below.
   const provider = providerOrUndefined();
   const encoder = new TextEncoder();
 

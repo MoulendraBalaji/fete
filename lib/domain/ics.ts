@@ -11,7 +11,23 @@ import { formatMinutesOfDay } from './timeline';
 
 const CRLF = '\r\n';
 const MAX_FIELD_CHARS = 200;
-const FOLD_AT = 74;
+/**
+ * RFC 5545 §3.1 requires physical lines of at most 75 *octets*, excluding the
+ * CRLF. Folding is therefore measured in UTF-8 bytes, not JavaScript string
+ * length: an emoji or an accented name is 2-4 bytes per code point, so a
+ * `.length` check would happily emit an 80-octet line.
+ *
+ * 73 leaves room for the single leading space a continuation line carries while
+ * staying inside 75 octets in every case.
+ */
+const FOLD_AT_OCTETS = 73;
+
+const encoder = new TextEncoder();
+
+/** UTF-8 length of a string in octets. */
+function octets(value: string): number {
+  return encoder.encode(value).length;
+}
 
 /** Escapes a text value per RFC 5545 §3.3.11. */
 export function escapeICalText(value: string): string {
@@ -22,19 +38,43 @@ export function escapeICalText(value: string): string {
     .replace(/\r?\n/g, '\\n');
 }
 
-/** Folds a logical line into 74-character physical lines (CRLF + space). */
+/**
+ * Folds a logical line into continuation lines at 75-octet boundaries.
+ *
+ * Splitting never lands inside a surrogate pair: a code point is appended only
+ * when the whole of it fits, so a line ending in an emoji is folded before it
+ * rather than through it.
+ */
 export function foldLine(line: string): string {
-  if (line.length <= FOLD_AT) return line;
+  if (octets(line) <= 75) return line;
+
   const parts: string[] = [];
-  let rest = line;
-  parts.push(rest.slice(0, FOLD_AT));
-  rest = rest.slice(FOLD_AT);
-  while (rest.length > FOLD_AT - 1) {
-    parts.push(` ${rest.slice(0, FOLD_AT - 1)}`);
-    rest = rest.slice(FOLD_AT - 1);
+  let current = '';
+  let currentOctets = 0;
+
+  for (const char of line) {
+    const charOctets = octets(char);
+    if (currentOctets + charOctets > FOLD_AT_OCTETS) {
+      parts.push(current);
+      // Continuation lines start with a single space, which counts toward
+      // the 75-octet budget.
+      current = ` ${char}`;
+      currentOctets = 1 + charOctets;
+    } else {
+      current += char;
+      currentOctets += charOctets;
+    }
   }
-  if (rest.length > 0) parts.push(` ${rest}`);
+  if (current.length > 0) parts.push(current);
+
   return parts.join(CRLF);
+}
+
+/** Asserts the invariant the folding above is meant to guarantee. */
+export function maxLineOctets(document: string): number {
+  return document
+    .split(CRLF)
+    .reduce((longest, line) => Math.max(longest, octets(line)), 0);
 }
 
 function property(name: string, value: string): string {

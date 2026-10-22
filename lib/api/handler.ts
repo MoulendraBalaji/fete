@@ -9,7 +9,8 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import type { z } from 'zod';
 import { AppError, badRequest, isAppError, originRejected, payloadTooLarge } from '../errors';
-import { clientKeyFromHeaders, enforceRateLimit } from '../security/rateLimit';
+import { clientKeyFromHeaders, configureStore, enforceRateLimit, storeName } from '../security/rateLimit';
+import { reserveUpstreamCall, upstreamUsage } from '../security/dailyCap';
 import { serverEnv } from '../security/env';
 import type { ApiError } from '../schemas/api';
 import type { LlmProvider } from '../ai/provider';
@@ -41,6 +42,14 @@ export function errorResponse(error: unknown, requestId: string): NextResponse<A
 
 /**
  * Same-origin guard for state-changing requests.
+ *
+ * This is **CSRF hardening, not authentication.** It makes a browser on another
+ * site unable to post here using the visitor's ambient credentials, which is the
+ * whole of its job. It proves nothing about *who* is calling: any non-browser
+ * client can set `Origin` to match `Host` trivially, so it must never be relied
+ * on as an identity or authorisation check. The cookies this app sets carry no
+ * authority, which is why that is acceptable here.
+ *
  * Browsers always send `Origin` on POST; if it is present it must match the
  * host the request arrived on. A missing Origin (curl, server-to-server) is
  * rejected too, because this API is only ever called by our own client.
@@ -113,11 +122,23 @@ function describeIssues(issues: readonly { path: PropertyKey[]; message: string 
   return `Check the ${field} field: ${first.message}`;
 }
 
-/** Rate limits by client IP; returns the remaining budget for the response. */
-export function limitRequest(request: Request, suffix: string): number {
+/**
+ * Rate limits by client IP; returns the remaining budget for the response.
+ *
+ * The store is selected once per process from the environment: Upstash when
+ * both REST variables are present, otherwise the in-memory fallback.
+ */
+export async function limitRequest(request: Request, suffix: string): Promise<number> {
   const env = serverEnv();
+  configureStore(env.upstash, 60_000);
   const key = clientKeyFromHeaders(request.headers, suffix);
-  return enforceRateLimit(key, env.RATE_LIMIT_PER_MIN).remaining;
+  const result = await enforceRateLimit(key, env.RATE_LIMIT_PER_MIN);
+  if (storeName() === 'memory' && env.upstashConfigured) {
+    // A configured-but-unreachable store is worth knowing about; the code is
+    // deliberately free of addresses or credentials.
+    console.error(JSON.stringify({ code: 'rate_limit_store_degraded', store: 'memory' }));
+  }
+  return result.remaining;
 }
 
 /** Headers every AI response carries (cache guidance + no-store for privacy). */
@@ -129,10 +150,25 @@ export function aiResponseHeaders(remaining: number, requestId: string): Record<
   };
 }
 
-/** The configured provider, or undefined when the deployment is offline. */
+/**
+ * The configured provider, or undefined when the deployment is offline.
+ *
+ * Also the single point where the daily upstream ceiling is applied: once the
+ * day's budget is spent this returns `undefined`, which every caller already
+ * handles by serving its deterministic fallback with `source: 'fallback'`.
+ * Funnelling it here means no route can forget the cap, and no route needs to
+ * know about it.
+ */
 export function providerOrUndefined(): LlmProvider | undefined {
   const env = serverEnv();
   if (!env.aiEnabled) return undefined;
+
+  if (!reserveUpstreamCall(env.LLM_DAILY_CALL_CAP)) {
+    // Code only: no addresses, no counts that could fingerprint a caller.
+    console.warn(JSON.stringify({ code: 'llm_daily_cap_reached', usage: upstreamUsage() }));
+    return undefined;
+  }
+
   return createProvider({
     baseUrl: env.LLM_BASE_URL as string,
     apiKey: env.LLM_API_KEY as string,

@@ -26,9 +26,12 @@ export interface TabsProps {
  * arrow keys move between tabs (roving `tabIndex`), `Home`/`End` jump to the
  * ends, and each tab is linked to its panel with `aria-controls`.
  *
- * Panels are kept mounted (hidden) so in-progress edits and scroll position in
- * one section survive a trip to another — losing a half-typed budget row when
- * glancing at the timeline would be hostile.
+ * A panel is kept mounted once it has been given content, so in-progress edits
+ * and scroll position in one section survive a trip to another — losing a
+ * half-typed budget row when glancing at the timeline would be hostile. A panel
+ * whose `panel` is `null` renders nothing at all, letting the caller decide when
+ * a section is worth building (see `Workspace`, which creates each panel on
+ * first visit).
  */
 export function Tabs({ items, activeId, onChange, label, className }: TabsProps) {
   const baseId = useId();
@@ -96,19 +99,29 @@ export function Tabs({ items, activeId, onChange, label, className }: TabsProps)
         })}
       </div>
 
-      {items.map((item) => (
-        <div
-          key={item.id}
-          role="tabpanel"
-          id={`${baseId}-panel-${item.id}`}
-          aria-labelledby={`${baseId}-tab-${item.id}`}
-          hidden={item.id !== activeId}
-          tabIndex={0}
-          className={styles.panel}
-        >
-          {item.id === activeId || item.panel ? item.panel : null}
-        </div>
-      ))}
+      {items.map((item) => {
+        // A tab that has never been opened has no panel, so there is nothing to
+        // put in the DOM — rendering an empty `tabpanel` would create a landmark
+        // a screen reader can reach with nothing inside it.
+        if (item.panel === null) return null;
+        const isActive = item.id === activeId;
+        return (
+          <div
+            key={item.id}
+            role="tabpanel"
+            id={`${baseId}-panel-${item.id}`}
+            aria-labelledby={`${baseId}-tab-${item.id}`}
+            hidden={!isActive}
+            // Only the visible panel is in the tab order, per the ARIA tabs
+            // pattern; `hidden` already removes the others, but being explicit
+            // means the intent survives a CSS change that drops `hidden`.
+            tabIndex={isActive ? 0 : -1}
+            className={styles.panel}
+          >
+            {item.panel}
+          </div>
+        );
+      })}
     </div>
   );
 }

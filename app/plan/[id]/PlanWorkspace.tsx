@@ -48,16 +48,20 @@ export function PlanWorkspace({ id }: PlanWorkspaceProps) {
   }, [id]);
 
   if (state === 'loading') {
+    // `id="main"` is required here, not decorative: the skip link in the root
+    // layout targets `#main`, and Lighthouse flags a page whose skip link points
+    // at nothing. Every branch of this component must own that landmark, since
+    // only one of them renders at a time.
     return (
-      <div className={styles.center} aria-live="polite">
+      <main id="main" className={styles.center} aria-live="polite">
         <p>Opening the plan…</p>
-      </div>
+      </main>
     );
   }
 
   if (state === 'missing') {
     return (
-      <div className={styles.center}>
+      <main id="main" className={styles.center}>
         <Logo />
         <Sheet className={styles.card}>
           <h1 className={styles.title}>That plan is not on this device</h1>
@@ -71,7 +75,7 @@ export function PlanWorkspace({ id }: PlanWorkspaceProps) {
             </Button>
           </div>
         </Sheet>
-      </div>
+      </main>
     );
   }
 

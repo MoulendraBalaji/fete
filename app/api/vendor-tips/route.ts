@@ -20,7 +20,7 @@ export const maxDuration = 30;
 
 export const POST = withErrorHandling(async (request, requestId) => {
   assertSameOrigin(request);
-  const remaining = limitRequest(request, 'vendor-tips');
+  const remaining = await limitRequest(request, 'vendor-tips');
   const { data } = await readValidatedBody(request, vendorTipsRequestSchema, requestId);
 
   const result = await generateVendorTips(providerOrUndefined(), data.brief, data.categoryKey);

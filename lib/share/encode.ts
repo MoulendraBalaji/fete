@@ -10,11 +10,34 @@
  * export-JSON route is always available instead).
  */
 import LZString from 'lz-string';
+import { PLAN_LIMITS } from '../schemas/core';
 import { planSchema, type Plan } from '../schemas/plan';
 
 /** Conservative ceiling for a whole shareable URL (~8 KB is the common limit). */
 export const MAX_SHARE_CHARS = 7_000;
 export const SHARE_HASH_PREFIX = '#plan=';
+
+/**
+ * Ceiling on decompressed JSON, checked *before* `JSON.parse`.
+ *
+ * lz-string's ratio is unbounded — a 5 KB run of one character expands to 5 MB
+ * in single-digit milliseconds, and `decompressFromEncodedURIComponent` cannot
+ * be interrupted once started. Bounding the input length alone is not enough
+ * (that same 5 MB payload arrives in 5.6 KB of input), so the decompressed
+ * string is measured and rejected before it is ever parsed or validated.
+ *
+ * 64 KB is roughly 4x the largest plan this app can produce, so a legitimate
+ * share of any size still decodes.
+ */
+export const MAX_DECOMPRESSED_CHARS = 64_000;
+
+/** Row-count ceilings, applied before schema validation walks the arrays. */
+const MAX_ROWS = {
+  timeline: PLAN_LIMITS.timelineItems,
+  vendors: PLAN_LIMITS.vendors,
+  ideas: PLAN_LIMITS.ideas,
+  budget: PLAN_LIMITS.budgetCategories,
+} as const;
 
 export type ShareResult =
   | { ok: true; value: string; chars: number; fidelity: Fidelity }
@@ -74,7 +97,17 @@ function shareCandidates(plan: Plan): Candidate[] {
   ];
 }
 
-/** Decodes a share string back into a validated plan. */
+/**
+ * Decodes a share string back into a validated plan.
+ *
+ * Guard order matters and is the point of this function:
+ *   1. bound the *encoded* length (cheap, rejects the obviously huge),
+ *   2. decompress,
+ *   3. bound the *decompressed* length before parsing (catches a bomb that
+ *      arrived inside a small string),
+ *   4. reject oversized row counts before the schema walks them,
+ *   5. validate with zod, which remains the authority on shape.
+ */
 export function decodePlan(encoded: string): Plan | undefined {
   if (encoded.length === 0 || encoded.length > MAX_SHARE_CHARS * 2) return undefined;
 
@@ -86,14 +119,43 @@ export function decodePlan(encoded: string): Plan | undefined {
   }
   if (!json) return undefined;
 
+  // Step 3: the decompression-bomb gate. Nothing below runs on a payload that
+  // exceeds the ceiling, so no parser ever touches the expanded string.
+  if (json.length > MAX_DECOMPRESSED_CHARS) return undefined;
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch {
     return undefined;
   }
+
+  if (!withinRowLimits(parsed)) return undefined;
+
   const result = planSchema.safeParse(parsed);
   return result.success ? result.data : undefined;
+}
+
+/**
+ * Row-count guard applied before schema validation.
+ *
+ * The schema enforces these too, but it does so by iterating every element
+ * first; this rejects a 50,000-element array without building 50,000 errors.
+ * Unknown or absent collections are left for the schema to judge, so this can
+ * only ever reject, never accidentally accept.
+ */
+function withinRowLimits(candidate: unknown): boolean {
+  if (!candidate || typeof candidate !== 'object') return true;
+  const plan = candidate as Record<string, unknown>;
+
+  const arrays: ReadonlyArray<[unknown, number]> = [
+    [(plan.timeline as { items?: unknown } | undefined)?.items, MAX_ROWS.timeline],
+    [plan.vendors, MAX_ROWS.vendors],
+    [plan.ideas, MAX_ROWS.ideas],
+    [(plan.budget as { rows?: unknown } | undefined)?.rows, MAX_ROWS.budget],
+  ];
+
+  return arrays.every(([value, max]) => !Array.isArray(value) || value.length <= max);
 }
 
 /** Full shareable path for a plan, or a reason why it cannot be shared by URL. */

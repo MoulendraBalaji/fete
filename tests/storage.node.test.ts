@@ -16,6 +16,7 @@ import {
   type StorageLike,
 } from '@/lib/storage/plans';
 import {
+  MAX_DECOMPRESSED_CHARS,
   MAX_SHARE_CHARS,
   buildSharePath,
   decodePlan,
@@ -24,6 +25,7 @@ import {
   readPlanFromHash,
   toExportJson,
 } from '@/lib/share/encode';
+import LZString from 'lz-string';
 import { briefSchema } from '@/lib/schemas/brief';
 import { buildDemoPlan } from '@/lib/domain/seeds';
 import { createPlan } from '@/lib/domain/plan';
@@ -203,6 +205,37 @@ describe('share links', () => {
     expect(decodePlan(notAPlan)).toBeUndefined();
   });
 
+  it('refuses a decompression bomb that arrives in a tiny string', () => {
+    // lz-string's ratio is unbounded: a run of one character expands hundreds
+    // of times over, so a payload far beyond the encoded-length cap decompresses
+    // *inside* a string that passes it. This is the regression that guards the
+    // decompressed-size check.
+    //
+    // 400 KB is enough to exceed MAX_DECOMPRESSED_CHARS by 6x while keeping the
+    // test itself fast; the ratio, not the absolute size, is what matters.
+    const bomb = encodePlanLike(`{"padding":"${'A'.repeat(400_000)}"}`);
+    expect(bomb.length).toBeLessThan(MAX_SHARE_CHARS * 2); // passes the input cap
+    expect(decodePlan(bomb)).toBeUndefined();
+  });
+
+  it('does not allocate beyond the decompressed ceiling', () => {
+    // Confirms the guard fires on the decompressed length, not on some later
+    // failure that would mean the whole string was already parsed.
+    const payload = 'A'.repeat(MAX_DECOMPRESSED_CHARS + 1);
+    const encoded = encodePlanLike(`{"padding":"${payload}"}`);
+    const decompressed = LZString.decompressFromEncodedURIComponent(encoded) ?? '';
+    expect(decompressed.length).toBeGreaterThan(MAX_DECOMPRESSED_CHARS);
+    expect(decodePlan(encoded)).toBeUndefined();
+  });
+
+  it('rejects a plan whose arrays exceed the row limits before validating', () => {
+    // A huge array inside an otherwise tiny payload; the guard rejects it
+    // without the schema building thousands of issues.
+    const manyVendors = Array.from({ length: 501 }, (_, index) => ({ id: `vendor-${index}` }));
+    const encoded = encodePlanLike(JSON.stringify({ ...minimalPlanShape(), vendors: manyVendors }));
+    expect(decodePlan(encoded)).toBeUndefined();
+  });
+
   it('refuses to build a link for a plan that will not validate', () => {
     const plan = buildDemoPlan('birthday', { todayIso: '2026-10-20', now: NOW, id: ID.shareBad });
     const broken = { ...plan, id: 'not a valid id!' };
@@ -356,7 +389,18 @@ describe('brief schema', () => {
 
 /** Local helper: compress arbitrary JSON the same way the share encoder does. */
 function encodePlanLike(json: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const LZString = require('lz-string') as typeof import('lz-string');
   return LZString.compressToEncodedURIComponent(json);
+}
+
+/**
+ * The smallest object with every key the row-limit guard inspects, so a test
+ * can add one oversized array without a full plan fixture.
+ */
+function minimalPlanShape(): Record<string, unknown> {
+  return {
+    timeline: { items: [] },
+    vendors: [],
+    ideas: [],
+    budget: { rows: [] },
+  };
 }

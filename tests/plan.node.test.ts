@@ -3,13 +3,22 @@ import { buildDemoPlan, demoBriefFor } from '@/lib/domain/seeds';
 import { createPlan, defaultPlanName, duplicatePlan, rebuildPlan } from '@/lib/domain/plan';
 import { computeLedger } from '@/lib/domain/budget';
 import { planSchema } from '@/lib/schemas/plan';
-import { buildIcs } from '@/lib/domain/ics';
+import { buildIcs, escapeICalText, foldLine, maxLineOctets } from '@/lib/domain/ics';
 import { summarizePlan } from '@/lib/domain/summary';
 import { TEXT_LIMITS } from '@/lib/schemas/core';
 import { daysBetween } from '@/lib/domain/timeline';
 import { TODAY_ISO, WEDDING_BRIEF } from '@/tests/fixtures';
 
 const EVENT_TYPES = ['wedding', 'birthday', 'community'] as const;
+
+/**
+ * Reverses RFC 5545 line folding, restoring the logical lines a calendar parser
+ * sees. Needed because a physical line may end mid-token, so raw substring
+ * counts over a folded document are unreliable.
+ */
+function unfold(ics: string): string {
+  return ics.replace(/\r\n[ \t]/g, '');
+}
 
 describe('createPlan', () => {
   it('produces a schema-valid plan whose ledger sums to the total', () => {
@@ -109,7 +118,8 @@ describe('ics export', () => {
     expect(ics.trimEnd().endsWith('END:VCALENDAR')).toBe(true);
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(plan.timeline.items.length);
     expect(ics).toContain('X-WR-CALNAME:');
-    expect(ics.split('\r\n').every((line) => line.length <= 75)).toBe(true);
+    // RFC 5545 §3.1: 75 *octets*, not 75 characters.
+    expect(maxLineOctets(ics)).toBeLessThanOrEqual(75);
   });
 
   it('escapes injection-hostile text', () => {
@@ -125,6 +135,78 @@ describe('ics export', () => {
     const ics = buildIcs(hostile, '20261020T000000Z');
     expect(ics).toContain('Pay\\; DELETE\\,all\\nX-EVIL:1');
     expect(ics.match(/\nX-EVIL/g)).toBeNull();
+  });
+
+  it('escapes a backslash before anything else it escapes', () => {
+    // Order matters: escaping `;` first would turn `\;` into `\\;` and change
+    // the meaning. A literal backslash must become `\\` and nothing more.
+    expect(escapeICalText('a\\b')).toBe('a\\\\b');
+    expect(escapeICalText('a;b')).toBe('a\\;b');
+    expect(escapeICalText('a,b')).toBe('a\\,b');
+    expect(escapeICalText('a\nb')).toBe('a\\nb');
+    expect(escapeICalText('a\r\nb')).toBe('a\\nb');
+    expect(escapeICalText('back\\slash;and,more')).toBe('back\\\\slash\\;and\\,more');
+  });
+
+  it('folds long lines at octet boundaries, never inside a code point', () => {
+    // Each emoji is 4 UTF-8 octets, so a 75-*character* limit would emit a
+    // line far past 75 octets. Folding must respect the byte budget.
+    const emoji = '🎉'.repeat(40);
+    const folded = foldLine(`SUMMARY:${emoji}`);
+    expect(maxLineOctets(folded)).toBeLessThanOrEqual(75);
+    // Folding must not split a surrogate pair, which would corrupt the text.
+    const reassembled = folded
+      .split('\r\n')
+      .map((line, index) => (index === 0 ? line : line.slice(1)))
+      .join('');
+    expect(reassembled).toBe(`SUMMARY:${emoji}`);
+    expect(reassembled).not.toContain('\uFFFD');
+  });
+
+  it('keeps a hostile accented and emoji name inside the octet limit', () => {
+    const plan = buildDemoPlan('community', { todayIso: TODAY_ISO, now: 1, id: 'demo-ics-3' });
+    const hostile = {
+      ...plan,
+      name: 'Fête — café ☕ 🎉🎉🎉 with a very long name that must still fold safely',
+      vendors: plan.vendors.map((vendor, index) =>
+        index === 0 ? { ...vendor, name: 'Zażółć gęślą jaźń 🎊\u0000<script>' } : vendor,
+      ),
+      timeline: {
+        items: plan.timeline.items.map((item, index) =>
+          index === 0
+            ? { ...item, title: `${'🙂'.repeat(30)};,\\\nEND:VEVENT\nBEGIN:VEVENT` }
+            : item,
+        ),
+      },
+    };
+    const ics = buildIcs(hostile, '20261020T000000Z');
+
+    expect(maxLineOctets(ics)).toBeLessThanOrEqual(75);
+
+    // A forged `END:VEVENT` inside a title must be escaped, not honoured, so
+    // the event count still matches the plan.
+    //
+    // The assertion runs on the *unfolded* document: a folded physical line can
+    // end mid-token (that is what folding means), so counting occurrences in the
+    // raw text would report a false positive for a `BEGIN:VEVENT` that happens to
+    // start a continuation line. Unfolding first restores the logical lines a
+    // parser would see, which is the only form the count is meaningful in.
+    const unfolded = unfold(ics);
+    expect(unfolded.match(/^BEGIN:VEVENT$/gm)).toHaveLength(plan.timeline.items.length);
+    expect(unfolded.match(/^END:VEVENT$/gm)).toHaveLength(plan.timeline.items.length);
+    // And the forged token survived only as escaped data, never as a line.
+    expect(ics).toContain('\\nBEGIN:VEVENT');
+  });
+
+  it('truncates an absurdly long field rather than emitting it whole', () => {
+    const plan = buildDemoPlan('wedding', { todayIso: TODAY_ISO, now: 1, id: 'demo-ics-4' });
+    const hostile = {
+      ...plan,
+      name: 'x'.repeat(5_000),
+    };
+    const ics = buildIcs(hostile, '20261020T000000Z');
+    expect(maxLineOctets(ics)).toBeLessThanOrEqual(75);
+    expect(ics).not.toContain('x'.repeat(300));
   });
 });
 
